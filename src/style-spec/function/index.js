@@ -57,7 +57,7 @@ function createFunction(parameters: FunctionParameters, propertySpec: StylePrope
             expr = getDefaultValue(propertySpec);
         }
     } else if (typeof parameters === 'object' && parameters !== null && typeof parameters.expression !== 'undefined') {
-        expr = ['coalesce', parameters.expression, getDefaultValue(propertySpec)];
+        expr = parameters.expression;
     } else {
         expr = convert.function(parameters, propertySpec);
     }
@@ -69,13 +69,16 @@ function createFunction(parameters: FunctionParameters, propertySpec: StylePrope
         const f = function (globalProperties: {+zoom?: number}, feature?: Feature) {
             try {
                 const val = compiled.function(globalProperties, feature);
-                return val === null ? undefined : val;
+                if (val === null || val === undefined) {
+                    return propertySpec.default;
+                }
+                return val;
             } catch (e) {
                 if (!warningHistory[e.message]) {
                     warningHistory[e.message] = true;
                     if (typeof console !== 'undefined') console.warn(e.message);
                 }
-                return undefined;
+                return propertySpec.default;
             }
         };
         f.isFeatureConstant = compiled.isFeatureConstant;

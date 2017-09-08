@@ -4,6 +4,12 @@ const extend = require('../util/extend');
 module.exports.function = convertFunction;
 module.exports.value = convertValue;
 
+const types = {
+    string: 'String',
+    number: 'Number',
+    boolean: 'Boolean'
+};
+
 function convertFunction(parameters, propertySpec) {
     let expression;
 
@@ -37,18 +43,32 @@ function convertFunction(parameters, propertySpec) {
         } else {
             expression = convertPropertyFunction(parameters, propertySpec);
         }
-
-        if (expression[0] === 'curve' && expression[1][0] === 'step' && expression.length === 4) {
-            // degenerate step curve (i.e. a constant function): add a noop stop
-            expression.push(0);
-            expression.push(expression[3]);
-        }
     } else {
         // identity function
-        expression = annotateValue(['get', parameters.property], propertySpec);
+        const type = getTypeString(propertySpec);
+        expression = [
+            'case',
+            ['==', ['typeof', ['get', parameters.property]], type],
+            annotateValue(['get', parameters.property], propertySpec),
+            parameters.default
+        ];
     }
 
-    return ['coalesce', expression, parameters.default];
+    return expression;
+}
+
+// Return a type string that can be used for a preflight ['==', ['typeof',
+// ['get', prop]], ...] check in property functions.
+function getTypeString(propertySpec) {
+    if (propertySpec.type === 'color' || propertySpec.type === 'enum') {
+        return 'String';
+    } else if (propertySpec.type === 'array' && typeof propertySpec.length === 'number') {
+        return `Array<${getTypeString({type: propertySpec.value})}, ${propertySpec.length}>`;
+    } else if (propertySpec.type === 'array') {
+        return `Array<${getTypeString({type: propertySpec.value})}>`;
+    } else {
+        return types[propertySpec.type];
+    }
 }
 
 function annotateValue(value, spec) {
@@ -86,7 +106,7 @@ function annotateValue(value, spec) {
 }
 
 function convertValue(value, spec) {
-    if (typeof value === 'undefined') return null;
+    if (typeof value === 'undefined' || value === null) return null;
     if (spec.type === 'color') {
         return ['to-color', value];
     } else if (spec.type === 'array') {
@@ -133,6 +153,8 @@ function convertZoomAndPropertyFunction(parameters, propertySpec) {
     for (const z of zoomStops) {
         appendStopPair(expression, z, convertPropertyFunction(featureFunctions[z], propertySpec), isStep);
     }
+
+    fixupDegenerateStepCurve(expression);
 
     return expression;
 }
@@ -183,7 +205,14 @@ function convertPropertyFunction(parameters, propertySpec) {
         expression.push(parameters.default);
     }
 
-    return expression;
+    fixupDegenerateStepCurve(expression);
+
+    return [
+        'case',
+        ['==', ['typeof', ['get', parameters.property]], types[inputType]],
+        expression,
+        parameters.default
+    ];
 }
 
 function convertZoomFunction(parameters, propertySpec) {
@@ -204,7 +233,17 @@ function convertZoomFunction(parameters, propertySpec) {
         appendStopPair(expression, stop[0], stop[1], isStep);
     }
 
+    fixupDegenerateStepCurve(expression);
+
     return expression;
+}
+
+function fixupDegenerateStepCurve(expression) {
+    // degenerate step curve (i.e. a constant function): add a noop stop
+    if (expression[0] === 'curve' && expression[1][0] === 'step' && expression.length === 4) {
+        expression.push(0);
+        expression.push(expression[3]);
+    }
 }
 
 function appendStopPair(curve, input, output, isStep) {
