@@ -71,7 +71,6 @@ class Tile {
     maskedBoundsVAO: ?VertexArrayObject;
     request: any;
     texture: any;
-    sourceCache: any;
     refreshedUponExpiration: boolean;
     reloadCallback: any;
 
