@@ -18,15 +18,6 @@
       "isZoomConstant": true,
       "type": "Boolean"
     },
-    "outputs": [
-      false,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ]
+    "outputs": [false, true, false, false, false, false, false, false]
   }
 }

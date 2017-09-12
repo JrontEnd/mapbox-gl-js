@@ -14,11 +14,6 @@
       "isZoomConstant": true,
       "type": "String"
     },
-    "outputs": [
-      "1",
-      "default",
-      "default",
-      "default"
-    ]
+    "outputs": ["1", "default", "default", "default"]
   }
 }
