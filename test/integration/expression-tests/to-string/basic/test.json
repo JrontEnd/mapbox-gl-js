@@ -1,5 +1,4 @@
 {
-  "expectExpressionType": null,
   "expression": ["to-string", ["get", "x"]],
   "inputs": [
     [{}, {"properties": {"x": 1}}],
@@ -13,18 +12,8 @@
       "result": "success",
       "isFeatureConstant": false,
       "isZoomConstant": true,
-      "type": "String"
+      "type": "string"
     },
-    "outputs": [
-      "1",
-      "false",
-      "null",
-      {
-        "error": "Expected a primitive value in [\"string\", ...], but found Array<Number, 2> instead."
-      },
-      {
-        "error": "Expected a primitive value in [\"string\", ...], but found Object instead."
-      }
-    ]
+    "outputs": ["1", "false", "null", "[1,2]", "{\"y\":1}"]
   }
 }

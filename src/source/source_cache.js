@@ -46,7 +46,7 @@ class SourceCache extends Evented {
     _shouldReloadOnResume: boolean;
     _coveredTiles: {[any]: boolean};
     transform: Transform;
-    _isIdRenderable: (id: string) => boolean;
+    _isIdRenderable: (id: number) => boolean;
     used: boolean;
 
     static maxUnderzooming: number;
@@ -173,8 +173,16 @@ class SourceCache extends Evented {
         return this.getIds().filter(this._isIdRenderable);
     }
 
-    _isIdRenderable(id: string) {
-        return this._tiles[id].hasData() && !this._coveredTiles[id];
+    hasRenderableParent(coord: TileCoord) {
+        const parentTile = this.findLoadedParent(coord, 0, {});
+        if (parentTile) {
+            return this._isIdRenderable(parentTile.coord.id);
+        }
+        return false;
+    }
+
+    _isIdRenderable(id: number) {
+        return this._tiles[id] && this._tiles[id].hasData() && !this._coveredTiles[id];
     }
 
     reload() {
@@ -415,7 +423,6 @@ class SourceCache extends Evented {
 
     _updateRetainedTiles(idealTileCoords: Array<TileCoord>, zoom: number): { [string]: boolean} {
         let i, coord, tile, covered;
-
         const retain = {};
         const checked: {[number]: boolean } = {};
         const minCoveringZoom = Math.max(zoom - SourceCache.maxOverzooming, this._source.minzoom);
@@ -468,14 +475,13 @@ class SourceCache extends Evented {
                     // We couldn't find child tiles that entirely cover the ideal tile.
                     for (let overscaledZ = zoom - 1; overscaledZ >= minCoveringZoom; --overscaledZ) {
 
-                        const parentId = coord.scaledTo(overscaledZ);
+                        const parentId = coord.scaledTo(overscaledZ, this._source.maxzoom);
                         if (checked[parentId.id]) {
                             // Break parent tile ascent, this route has been previously checked by another child.
                             break;
                         } else {
                             checked[parentId.id] = true;
                         }
-
 
                         tile = this.getTile(parentId);
                         if (!tile && parentWasRequested) {
